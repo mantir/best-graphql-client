@@ -16,18 +16,17 @@ This client is the best for you, if you like it short and elegant. It uses the A
 
 ## Installation
 
-### Add this repo to you package.json:
+### Add this repo to your package.json:
 
 _*dependencies:*_
 
-- "best-graphql-client": "git+https://url-to-this-repo.git"
+- "best-graphql-client": "git+https://github.com/mantir/best-graphl-client.git"
 
-### Add this script to you package.json: 
+### Add this script to your package.json: 
 
 _*scripts:*_
 
 - "generate": "npm run --prefix node_modules/best-graphql-client generate"
-
 
 ```bash
 npm install
@@ -36,6 +35,13 @@ npm install
 ### Generate definitions for endpoint:
 ```bash
 CORE=https://url-to-endpoint npm run generate
+```
+This will create definitions.js which must be included when initializing the client.
+
+```javascript
+const endpoint = 'http://url-to-endpoint'; //Url to endpoint
+const definitions = require('./definitions');
+var bgc = require('best-graphql-client')(endpoint, definitions);
 ```
 
 ## Functions
@@ -64,22 +70,22 @@ const definitions = require('./definitions');
 var bgc = require('best-graphql-client')(endpoint, definitions);
 
 /* All tags with all fields but without connected objects */
-var stations = await bcg.get('tags');
+var stations = await bgc.get('tags');
 
 /* All tags with parameters, all fields but without connected objects */
-var tags = await bcg.get('tags', {orderBy: 'name_ASC'});
+var tags = await bgc.get('tags', {orderBy: 'name_ASC'});
 
 /* All tags with only field 'name' and connected object 'tagCategory' */
-var tags = await bcg.get('tags', {orderBy: 'name_ASC'}, ['tagCategory'], 'name');
+var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, ['tagCategory'], 'name');
 
 /* All tags with the field 'name' but without connected objects */
-var tags = await bcg.get('tags', {}, 'name');
+var tags = await bgc.get('tags', {}, 'name');
 
 /* All tags with all fields and all connected objects with all their fields */
-var tags = await bcg.get('tags', {orderBy: 'name_ASC'}, '*')
+var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, '*')
 
 /* posts: includes the fields of all connected objects and for the comments it includes also all the fields of the user */
 var posts = await bgc.get('posts', {where: {title: "Your title"}}, ["*", {comments: ["user"]}])
 
 /* Create tag */
-var res = await bcg.mutate('createTag', {data: { name: "TESTING" }})
+var res = await bgc.mutate('createTag', {data: { name: "TESTING" }})
