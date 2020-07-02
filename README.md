@@ -6,6 +6,18 @@ Just provide the url of any GraphQL endpoint to generate the information the cli
 bgc.get('posts', {where: {title: "Your title"}}, ["author", {comments: ["user"]}])
 ```
 
+If you care about overfetching and don't need all the fields, just use GraphQL-syntax as you already now it:
+
+```javascript
+bgc.get('posts', {where: {title: "Your title"}}, 'text author{ name } comments{ text user{ id name } }');
+```
+
+Or put in a whole GraphQL-query. It's up to you:
+
+```javascript
+bgc.get('query { posts { text author{ name } comments{ text user{ id name } } } }');
+```
+
 By the way: The client supports subscriptions out of the box:
 
 ```javascript
@@ -34,7 +46,7 @@ npm install
 
 ### Generate definitions for endpoint:
 ```bash
-CORE=https://url-to-endpoint npm run generate
+ENDPOINT=https://url-to-endpoint npm run generate
 ```
 This will create definitions.js which must be included when initializing the client.
 
@@ -67,7 +79,10 @@ _Fragment for Graphql-Query_
 ```javascript
 const endpoint = 'http://url-to-endpoint.com'; //Url to endpoint
 const definitions = require('./definitions');
-var bgc = require('best-graphql-client')(endpoint, definitions);
+/* For usage in browser environment */
+var bgc = require('best-graphql-client/browser')(endpoint, definitions);
+/* For usage in nodejs environment */
+var bgc = require('best-graphql-client/nodejs')(endpoint, definitions);
 
 /* All tags with all fields but without connected objects */
 var stations = await bgc.get('tags');
@@ -77,6 +92,8 @@ var tags = await bgc.get('tags', {orderBy: 'name_ASC'});
 
 /* All tags with only field 'name' and connected object 'tagCategory' */
 var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, ['tagCategory'], 'name');
+/* Same as */
+var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, 'name tagCategory { id name }');
 
 /* All tags with the field 'name' but without connected objects */
 var tags = await bgc.get('tags', {}, 'name');

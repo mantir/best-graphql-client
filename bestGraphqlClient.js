@@ -6,21 +6,23 @@ const { WebSocketLink } = require('apollo-link-ws');
 const { getMainDefinition } = require('apollo-utilities');
 const { InMemoryCache } = require('apollo-cache-inmemory');
 const { SubscriptionClient } = require("subscriptions-transport-ws");
-const fetch = require("node-fetch");
-const ws = require('ws');
-const FormData = require('form-data');
 const HttpLink = createUploadLink;
 
 const packageName = 'best-graphql-client';
 
 
-var bestGraphqlClient = (uri, definitions, name = false) => {
-  var client = new ApolloClient({ link: new HttpLink({ uri, fetch }), cache: new InMemoryCache() });
+var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
+  if(!definitions) {
+    definitions = { query : {}, mutation: {}, subscription: {}, entities: {} };
+  }
+  var initLinkParams = { uri };
+  if(polyfill) initLinkParams.fetch = polyfill.fetch;
+  var client = new ApolloClient({ link: new HttpLink(initLinkParams), cache: new InMemoryCache() });
   var lib = {
     client,
     initSubscriptions() {
       const wsUri = uri.replace(/^http/i, 'ws') + '/graphql';
-      const subscriptionClient = new SubscriptionClient(wsUri, { reconnect: true }, ws);
+      const subscriptionClient = new SubscriptionClient(wsUri, { reconnect: true }, polyfill && polyfill.ws);
       const wsLink = new WebSocketLink(subscriptionClient);
       wsLink.subscriptionClient.on("connected", () => {
         console.log("connected " + packageName + " to " + wsUri + ' (' + (new Date()).toLocaleTimeString() + ')');
@@ -29,7 +31,7 @@ var bestGraphqlClient = (uri, definitions, name = false) => {
         console.log("disconnected " + packageName + " from " + wsUri + ' (' + (new Date()).toLocaleTimeString() + ')');
       });
 
-      const httpLink = new HttpLink({ uri, fetch });
+      const httpLink = new HttpLink(initLinkParams);
       const link = split(
         ({ query }) => {
           const { kind, operation } = getMainDefinition(query);
@@ -99,7 +101,7 @@ var bestGraphqlClient = (uri, definitions, name = false) => {
     },
 
     setCoreUrl(uri) {
-      this.client = new ApolloClient({ link: new HttpLink({ uri, fetch }), cache: new InMemoryCache() });
+      this.client = new ApolloClient({ link: new HttpLink(initLinkParams), cache: new InMemoryCache() });
       console.log("\n--- Set Client coreUrl ---\n", uri);
       return 'success';
     },
@@ -138,8 +140,7 @@ var bestGraphqlClient = (uri, definitions, name = false) => {
       }
       var def = definitions[queryType][name];
       if (!def) {
-        def = name;
-        name = def[2];
+        return name;
       }
       var varKeys = Object.keys(variables);
       var paramsDef = varKeys.map((k) => '$' + k + ':' + def[0][k]).join(', ');
@@ -169,7 +170,7 @@ var bestGraphqlClient = (uri, definitions, name = false) => {
           if (res.graphQLErrors && res.graphQLErrors.length) {
             res.errors = res.graphQLErrors;
           } else if (res.networkError) {
-            res.errors = res.networkError.result.errors;
+            res.errors = res.networkError.result ? res.networkError.result.errors : [res.networkError];
           } else {
             res = {
               ...res, errors: [{
