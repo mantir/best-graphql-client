@@ -101,7 +101,7 @@ var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, 'name tagCategory { id n
 var tags = await bgc.get('tags', {}, 'name');
 
 /* All tags with all fields and all connected objects with all their fields */
-var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, '*')
+var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, ['*'])
 
 /* posts: includes the fields of all connected objects and for the comments it includes also all the fields of the user */
 var posts = await bgc.get('posts', {where: {title: "Your title"}}, ["*", {comments: ["user"]}])

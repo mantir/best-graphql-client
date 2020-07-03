@@ -132,6 +132,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
       var fragMap = {};
 
       if (inc) {
+        if(!Array.isArray(inc)) throw packageName + ": includes must be an array, but got " + inc+ '. Make sure that all includes are inside of arrays.';
         var available = definitions.entities[name].availableInc;
         for (var i of inc) {
           if (i == '*' || i == '*|fragment') {
@@ -143,6 +144,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
                 return included.split('|')[0] == a;
               }))
             });
+            
             if (i == '*|fragment') uniqueAvailable = uniqueAvailable.map((a) => a + '|fragment');
             
             query += this.buildFields(name, uniqueAvailable, ' ', fragment);
