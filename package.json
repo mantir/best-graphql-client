@@ -5,7 +5,7 @@
   "main": "bestGraphqlClient.js",
   "scripts": {
     "generate": "node generate-definitions.js",
-    "generate-test": "TEST=1 node generate-definitions.js "
+    "generate-test": " TEST=1 node generate-definitions.js "
   },
   "author": "Martin Kapp",
   "license": "MIT",

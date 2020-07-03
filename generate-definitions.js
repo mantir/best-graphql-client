@@ -2,6 +2,8 @@ const fs = require('fs');
 const bgc = require('./nodejs')(process.env.ENDPOINT);
 var name = process.env.NAME || 'definitions';
 var filename = name+'.js';
+var folder = proces.env.FOLDER || __dirname + '/../..';
+var fullpath = folder + '/' + filename;
 
 const introspection = `query IntrospectionQuery {
     __schema {
@@ -11,7 +13,7 @@ const introspection = `query IntrospectionQuery {
       types {
         ...FullType
       }
-      directives {
+      directives  || __dirname{
         name
         description
         args {
@@ -124,7 +126,6 @@ bgc.get(introspection).then((data) => {
   if (process.env.TEST) {
     fs.writeFileSync(__dirname + '/' + filename, 'module.exports = ' + JSON.stringify(definitions));
   }
-  var fullpath = __dirname + '/../../' + filename;
   if (!process.env.TEST) {
     fs.writeFileSync(fullpath, 'module.exports = ' + JSON.stringify(definitions));
   }

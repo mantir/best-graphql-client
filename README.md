@@ -38,7 +38,7 @@ _*dependencies:*_
 
 _*scripts:*_
 
-- "generate": "npm run --prefix node_modules/best-graphql-client generate"
+- "generate": "FOLDER=`pwd` npm run --prefix node_modules/best-graphql-client generate"
 
 ```bash
 npm install
