@@ -1,6 +1,6 @@
-# Best Javascript GraphQL Client
+# Best Javascript GraphQL Client for the Browser and Node.js
 
-Just provide the url of any GraphQL endpoint to generate the information the client needs to know and be ready to write queries like this:
+Just provide the url of any GraphQL endpoint to generate the information the client needs and be ready to write queries like this:
 
 ```javascript
 bgc.get('posts', {where: {title: "Your title"}}, ["author", {comments: ["user"]}])
@@ -53,7 +53,9 @@ This will create definitions.js which must be included when initializing the cli
 ```javascript
 const endpoint = 'http://url-to-endpoint'; //Url to endpoint
 const definitions = require('./definitions');
-var bgc = require('best-graphql-client')(endpoint, definitions);
+var bgc = require('best-graphql-client/browser')(endpoint, definitions);
+/* OR */
+var bgc = require('best-graphql-client/nodejs')(endpoint, definitions);
 ```
 
 ## Functions
@@ -103,6 +105,8 @@ var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, '*')
 
 /* posts: includes the fields of all connected objects and for the comments it includes also all the fields of the user */
 var posts = await bgc.get('posts', {where: {title: "Your title"}}, ["*", {comments: ["user"]}])
+/* The same but as fragments */
+var posts = await bgc.get('posts', {where: {title: "Your title"}}, ["*|fragment", {"comments|fragment": ["user"]}])
 
 /* Create tag */
 var res = await bgc.mutate('createTag', {data: { name: "TESTING" }})

@@ -12,11 +12,11 @@ const packageName = 'best-graphql-client';
 
 
 var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
-  if(!definitions) {
-    definitions = { query : {}, mutation: {}, subscription: {}, entities: {} };
+  if (!definitions) {
+    definitions = { query: {}, mutation: {}, subscription: {}, entities: {} };
   }
   var initLinkParams = { uri };
-  if(polyfill) initLinkParams.fetch = polyfill.fetch;
+  if (polyfill) initLinkParams.fetch = polyfill.fetch;
   var client = new ApolloClient({ link: new HttpLink(initLinkParams), cache: new InMemoryCache() });
   var lib = {
     client,
@@ -43,61 +43,8 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
     },
     subscriptions: {},
 
-    fields(what, inc, query, fragment) {
-      if (query == 'fragment') {
-        fragment = true;
-        query = '';
-      }
-      if (!definitions.entities[what]) {
-        if (query) return query;
-        return what;
-      }
-      if (!query) {
-        query = definitions.entities[what].fields;
-      }
-      query = this.buildFields(query, inc, definitions.entities[what].availableInc);
-      if (fragment) {
-        query = `fragment ${what} on ${definitions.entities[what].entity} { ${query} }`;
-      }
-      return query;
-    },
-
     fragment(name, inc, fields) {
-      return this.fields(name, inc, fields, 1);
-    },
-
-    buildFields(query, inc, available) {
-      if (inc) {
-        if (inc === '*') inc = Object.keys(available);
-        for (var i of inc) {
-          if (i == '*') {
-            var uniqueAvailable = Object.keys(available).reduce((obj, a) => {
-              if (inc.find((included) => {
-                if (typeof (included) == 'object') {
-                  return Object.keys(included).find((ikey) => ikey == a);
-                }
-                return included == a;
-              })) return obj;
-              obj[a] = available[a];
-              return obj;
-            }, {});
-            query += this.buildFields('', '*', uniqueAvailable);
-          } else if (typeof i == 'string' && available[i]) {
-            var fields = this.fields(available[i]);
-            if (fields) {
-              query += ' ' + i + '{' + fields + '}';
-            }
-          } else if (typeof i == 'object') {
-            for (var key of Object.keys(i)) {
-              var fields = this.fields(available[key], i[key]);
-              if (fields) {
-                query += ' ' + key + '{' + fields + '}';
-              }
-            }
-          }
-        }
-      }
-      return query;
+      return this.buildFields(name, inc, fields, 1);
     },
 
     setCoreUrl(uri) {
@@ -133,8 +80,8 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
       return subResult;
     },
 
-    buildQuery(queryType, name, variables = {}, inc, fields) {
-      if (typeof inc == 'string' && inc != '*') {
+    buildQuery(queryType, name, variables = {}, inc, fields = '') {
+      if (typeof inc == 'string') {
         fields = inc;
         inc = false;
       }
@@ -145,12 +92,88 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
       var varKeys = Object.keys(variables);
       var paramsDef = varKeys.map((k) => '$' + k + ':' + def[0][k]).join(', ');
       var params = varKeys.map((k) => k + ':$' + k).join(', ');
-      fields = this.fields(def[1], inc, fields);
+
+      var fragments = false;
+      if (!Array.isArray(inc) && typeof inc == 'object') {
+        if (inc.fragments) {
+          fragments = inc.fragments;
+        }
+        inc = inc.inc;
+      }
+
+      fields = this.buildFields(def[1], inc, fields);
+
       if (paramsDef) {
         params = '(' + params + ')';
         paramsDef = '(' + paramsDef + ')';
       }
+
       var query = `${queryType} do${paramsDef} { ${name}${params} { ${fields} } }`;
+      if (inc) {
+        query += ' ' + this.buildFields(def[1], inc, '', 2);
+      }
+      return query;
+    },
+
+    buildFields(name, inc, fields = false, fragment = 0) {
+      var buildFragments = fragment === 2;
+      var isFragment = fragment === 1;
+      if (!definitions.entities[name]) {
+        return name;
+      }
+      var query = '';
+
+      if (fields) {
+        query = fields;
+      } else if (!buildFragments) {
+        query = definitions.entities[name].fields;
+      }
+
+      var fragMap = {};
+
+      if (inc) {
+        var available = definitions.entities[name].availableInc;
+        for (var i of inc) {
+          if (i == '*' || i == '*|fragment') {
+            var uniqueAvailable = Object.keys(available).filter((a) => {
+              return !(inc.find((included) => {
+                if (typeof (included) == 'object') {
+                  return Object.keys(included).find((ikey) => ikey.split('|')[0] == a);
+                }
+                return included.split('|')[0] == a;
+              }))
+            });
+            if (i == '*|fragment') uniqueAvailable = uniqueAvailable.map((a) => a + '|fragment');
+            
+            query += this.buildFields(name, uniqueAvailable, ' ', fragment);
+          } else if (typeof i == 'string') {
+            i = { [i]: false };
+          }
+          if (typeof i == 'object') {
+            for (var key of Object.keys(i)) {
+              var keyParts = key.split('|');
+              var keyName = keyParts[0];
+              var asFragment = keyParts[1] == 'fragment';
+              var fragIndex = asFragment ? 2 : 1;
+              var fields = keyParts[fragIndex] ? keyParts[fragIndex] + ' ' : '';
+              fields += this.buildFields(available[keyName], i[key], '', buildFragments && asFragment ? 1 : 0);
+              if (asFragment && !buildFragments && fields) {
+                fields = '...' + available[keyName];
+              }
+              if (fields) {
+                if (asFragment && buildFragments) {
+                  var frag = `fragment ${available[keyName]} on ${definitions.entities[available[keyName]].entity} { ${fields} }`;
+                  if (!fragMap[frag])
+                    query += frag;
+                  fragMap[frag] = true;
+                } else if (!buildFragments) {
+                  query += ' ' + keyName + '{' + fields + '}';
+                }
+              }
+            }
+          }
+        }
+      }
       return query;
     },
 
@@ -158,7 +181,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
       var query = this.buildQuery(queryType, name, variables, inc, fields);
 
       const fun = queryType != 'query' ? 'mutate' : 'query';
-      this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, variables);
+      this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
       var res = await this.client[fun]({ [queryType]: gql(query), variables }).catch((e) => e);
 
       if (res.data && res.data[name]) {
