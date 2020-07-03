@@ -13,7 +13,7 @@ const introspection = `query IntrospectionQuery {
       types {
         ...FullType
       }
-      directives  || __dirname{
+      directives {
         name
         description
         args {
