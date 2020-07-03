@@ -1,5 +1,7 @@
 const fs = require('fs');
-const bgc = require('./bestGraphqlClient')(process.env.ENDPOINT);
+const bgc = require('./nodejs')(process.env.ENDPOINT);
+var name = process.env.NAME || 'definitions';
+var filename = name+'.js';
 
 const introspection = `query IntrospectionQuery {
     __schema {
@@ -119,10 +121,14 @@ bgc.get(introspection).then((data) => {
     }
   }
   const definitions = { entities: allTypes, mutation: mutations, query: queries, subscription: subscriptions };
-  fs.writeFileSync(__dirname + '/definitions.js', 'module.exports = ' + JSON.stringify(definitions));
-  //fs.writeFileSync(__dirname + '../../definitions.js', 'module.exports = ' + JSON.stringify(definitions));
+  if (process.env.TEST) {
+    fs.writeFileSync(__dirname + '/' + filename, 'module.exports = ' + JSON.stringify(definitions));
+  }
+  if (!process.env.TEST) {
+    fs.writeFileSync(__dirname + '/../../' + filename, 'module.exports = ' + JSON.stringify(definitions));
+  }
   //fs.writeFileSync(__dirname + '/test-definitions.json', JSON.stringify(definitions));
-  var message = 'definitions stored to ./definitions.js, use require("./definitions") to include them into the client.';
+  var message = 'definitions stored to ' + filename + ', use require("./'+name+'") to include them into the client.';
   console.log("\x1b[32m", message, "\x1b[0m");
 })
 

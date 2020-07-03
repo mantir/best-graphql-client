@@ -4,7 +4,8 @@
   "description": "A library for common functions to read, write and subscribe to GraphQL endpoints.",
   "main": "bestGraphqlClient.js",
   "scripts": {
-    "generate": "ENDPOINT=$ENDPOINT node generate-definitions.js"
+    "generate": "node generate-definitions.js",
+    "generate-test": "TEST=1 node generate-definitions.js "
   },
   "author": "Martin Kapp",
   "license": "MIT",
