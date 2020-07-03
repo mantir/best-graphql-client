@@ -2,7 +2,7 @@ const fs = require('fs');
 const bgc = require('./nodejs')(process.env.ENDPOINT);
 var name = process.env.NAME || 'definitions';
 var filename = name+'.js';
-var folder = proces.env.FOLDER || __dirname + '/../..';
+var folder = process.env.FOLDER || __dirname + '/../..';
 var fullpath = folder + '/' + filename;
 
 const introspection = `query IntrospectionQuery {
