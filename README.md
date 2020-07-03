@@ -47,6 +47,7 @@ npm install
 ### Generate definitions for endpoint:
 ```bash
 ENDPOINT=https://url-to-endpoint npm run generate
+ENDPOINT=https://url-to-endpoint NAME=definitions-filename npm run generate
 ```
 This will create definitions.js which must be included when initializing the client.
 

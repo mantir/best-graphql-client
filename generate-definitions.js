@@ -124,11 +124,12 @@ bgc.get(introspection).then((data) => {
   if (process.env.TEST) {
     fs.writeFileSync(__dirname + '/' + filename, 'module.exports = ' + JSON.stringify(definitions));
   }
+  var fullpath = __dirname + '/../../' + filename;
   if (!process.env.TEST) {
-    fs.writeFileSync(__dirname + '/../../' + filename, 'module.exports = ' + JSON.stringify(definitions));
+    fs.writeFileSync(fullpath, 'module.exports = ' + JSON.stringify(definitions));
   }
   //fs.writeFileSync(__dirname + '/test-definitions.json', JSON.stringify(definitions));
-  var message = 'definitions stored to ' + filename + ', use require("./'+name+'") to include them into the client.';
+  var message = 'definitions stored to ' + fullpath + ', use require("./'+name+'") to include them into the client.';
   console.log("\x1b[32m", message, "\x1b[0m");
 })
 
