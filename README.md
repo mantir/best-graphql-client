@@ -38,7 +38,7 @@ _*dependencies:*_
 
 _*scripts:*_
 
-- "generate": "FOLDER=`pwd` npm run --prefix node_modules/best-graphql-client generate"
+- "generate": "FOLDER=\`pwd\` npm run --prefix node_modules/best-graphql-client generate"
 
 ```bash
 npm install
@@ -63,19 +63,33 @@ var bgc = require('best-graphql-client/nodejs')(endpoint, definitions);
 
 The following functions can be used to query a GraphlQL endpoint. 
 
-### get(_string_ name [, _object_ parameters [, _array_ includes] [, _string_ fields]])
+### get(_string_ name [, _object_ parameters [, _array_ includes] [, _string_ fields] [, _object_ options]])
 _Graphql-Query_: 
 `query do(parameters) { name(parameters) { fields + includes } }`
 
 If 3 parameters are given: If the 3rd is a string, it is used as the `fields`.
 If `fields` are empty, all fields are returned.
-`includes` can also be '*', then all connected objects are returned. (See Example-Usage)
+`includes` can also be ['*'], then all connected objects are returned. (See Example-Usage)
 
-### mutate(_string_ name [, _object_ parameters [, _array_ includes] [, _string_ fields]])
+### mutate(_string_ name [, _object_ parameters [, _array_ includes] [, _string_ fields] [, _object_ options]])
 _Graphql-Mutation_: (Same as `get`, just as `mutation`)
+
+
+### subscribe(_function_ callback, _string_ name [, _object_ parameters [, _array_ includes] [, _string_ fields] [, _object_ options]])
+_Graphql-Mutation_: (Same as `get`, just as `suscription`)
+- `options?: Object` : optional, object to modify default ApolloClient behavior
+  * `timeout?: number` : how long the client should wait in ms for a keep-alive message from the server (default 30000 ms), this parameter is ignored if the server does not send keep-alive messages. This will also be used to calculate the max connection time per connect/reconnect
+  * `lazy?: boolean` : use to set lazy mode - connects only when first subscription created, and delay the socket initialization
+  * `connectionParams?: Object | Function | Promise<Object>` : object that will be available as first argument of `onConnect` (in server side), if passed a function - it will call it and send the return value, if function returns as promise - it will wait until it resolves and send the resolved value.
+  * `reconnect?: boolean` : automatic reconnect in case of connection error
+  * `reconnectionAttempts?: number` : how much reconnect attempts
+  * `connectionCallback?: (error) => {}` : optional, callback that called after the first init message, with the error (if there is one)
+  * `inactivityTimeout?: number` : how long the client should wait in ms, when there are no active subscriptions, before disconnecting from the server. Set to 0 to disable this behavior. (default 0)
 
 ### fragment(_string_ name, _array_ includes, _string_ query)
 _Fragment for Graphql-Query_
+
+
 
 ## Example-Usage
 

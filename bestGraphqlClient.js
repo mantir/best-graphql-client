@@ -6,23 +6,28 @@ const { WebSocketLink } = require('apollo-link-ws');
 const { getMainDefinition } = require('apollo-utilities');
 const { InMemoryCache } = require('apollo-cache-inmemory');
 const { SubscriptionClient } = require("subscriptions-transport-ws");
+const ApolloLinkTimeout = require('apollo-link-timeout').default;
 const HttpLink = createUploadLink;
-
 const packageName = 'best-graphql-client';
 
 
-var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
+var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false) => {
   if (!definitions) {
     definitions = { query: {}, mutation: {}, subscription: {}, entities: {} };
   }
+  if(!options) {
+    options = { initSubscriptions: false };
+  }
   var initLinkParams = { uri };
   if (polyfill) initLinkParams.fetch = polyfill.fetch;
-  var client = new ApolloClient({ link: new HttpLink(initLinkParams), cache: new InMemoryCache() });
+  const timeoutLink = new ApolloLinkTimeout(10000);
+
+  var client = new ApolloClient({ link: timeoutLink.concat(createUploadLink(initLinkParams)), cache: new InMemoryCache() });
   var lib = {
     client,
-    initSubscriptions() {
+    initSubscriptions(opts) {
       const wsUri = uri.replace(/^http/i, 'ws') + '/graphql';
-      const subscriptionClient = new SubscriptionClient(wsUri, { reconnect: true }, polyfill && polyfill.ws);
+      const subscriptionClient = new SubscriptionClient(wsUri, { reconnect: true, ...opts }, polyfill && polyfill.ws);
       const wsLink = new WebSocketLink(subscriptionClient);
       wsLink.subscriptionClient.on("connected", () => {
         console.log("connected " + packageName + " to " + wsUri + ' (' + (new Date()).toLocaleTimeString() + ')');
@@ -31,7 +36,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
         console.log("disconnected " + packageName + " from " + wsUri + ' (' + (new Date()).toLocaleTimeString() + ')');
       });
 
-      const httpLink = new HttpLink(initLinkParams);
+      const httpLink = timeoutLink.concat(createUploadLink(initLinkParams));
       const link = split(
         ({ query }) => {
           const { kind, operation } = getMainDefinition(query);
@@ -47,23 +52,17 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
       return this.buildFields(name, inc, fields, 1);
     },
 
-    setCoreUrl(uri) {
-      this.client = new ApolloClient({ link: new HttpLink(initLinkParams), cache: new InMemoryCache() });
-      console.log("\n--- Set Client coreUrl ---\n", uri);
-      return 'success';
+    async get(name, variables = {}, inc, fields, opts) {
+      return this.submitQuery('query', name, variables, inc, fields, opts);
     },
 
-    async get(name, variables = {}, inc, fields) {
-      return this.submitQuery('query', name, variables, inc, fields);
+    async mutate(name, variables = {}, inc, fields, opts) {
+      return this.submitQuery('mutation', name, variables, inc, fields, opts);
     },
 
-    async mutate(name, variables = {}, inc, fields) {
-      return this.submitQuery('mutation', name, variables, inc, fields);
-    },
-
-    async subscribe(callback, name, variables = {}, inc, fields) {
+    async subscribe(callback, name, variables = {}, inc, fields, opts) {
       if (!this.subscriptionClient) {
-        this.initSubscriptions();
+        this.initSubscriptions(opts);
       }
       var queryString = this.buildQuery('subscription', name, variables, inc, fields);
       console.log(queryString);
@@ -81,10 +80,6 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
     },
 
     buildQuery(queryType, name, variables = {}, inc, fields = '') {
-      if (typeof inc == 'string') {
-        fields = inc;
-        inc = false;
-      }
       var def = definitions[queryType][name];
       if (!def) {
         return name;
@@ -92,14 +87,6 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
       var varKeys = Object.keys(variables);
       var paramsDef = varKeys.map((k) => '$' + k + ':' + def[0][k]).join(', ');
       var params = varKeys.map((k) => k + ':$' + k).join(', ');
-
-      var fragments = false;
-      if (!Array.isArray(inc) && typeof inc == 'object') {
-        if (inc.fragments) {
-          fragments = inc.fragments;
-        }
-        inc = inc.inc;
-      }
 
       fields = this.buildFields(def[1], inc, fields);
 
@@ -132,7 +119,13 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
       var fragMap = {};
 
       if (inc) {
-        if(!Array.isArray(inc)) throw packageName + ": includes must be an array, but got " + inc+ '. Make sure that all includes are inside of arrays.';
+        if(!Array.isArray(inc)) {
+          if(typeof inc == 'object') {
+            inc = [inc];
+          } else {
+            throw packageName + ": includes must be an array or objects, but got " + inc+ '. Make sure that all includes are either objects or inside of arrays.';
+          }
+        }
         var available = definitions.entities[name].availableInc;
         for (var i of inc) {
           if (i == '*' || i == '*|fragment') {
@@ -158,7 +151,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
               var asFragment = keyParts[1] == 'fragment';
               var fragIndex = asFragment ? 2 : 1;
               var fields = keyParts[fragIndex] ? keyParts[fragIndex] + ' ' : '';
-              fields += this.buildFields(available[keyName], i[key], '', buildFragments && asFragment ? 1 : 0);
+              fields += this.buildFields(available[keyName], i[key], '', buildFragments ? (asFragment ? 1 : 2) : 0);
               if (asFragment && !buildFragments && fields) {
                 fields = '...' + available[keyName];
               }
@@ -170,6 +163,8 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
                   fragMap[frag] = true;
                 } else if (!buildFragments) {
                   query += ' ' + keyName + '{' + fields + '}';
+                } else if(buildFragments) {
+                  query += fields;
                 }
               }
             }
@@ -179,12 +174,17 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
       return query;
     },
 
-    async submitQuery(queryType, name, variables = {}, inc, fields) {
+    async submitQuery(queryType, name, variables = {}, inc, fields, opts) {
+      if (typeof inc == 'string') {
+        opts = fields;
+        fields = inc;
+        inc = false;
+      }
       var query = this.buildQuery(queryType, name, variables, inc, fields);
 
       const fun = queryType != 'query' ? 'mutate' : 'query';
       this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
-      var res = await this.client[fun]({ [queryType]: gql(query), variables }).catch((e) => e);
+      var res = await this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => e);
 
       if (res.data && res.data[name]) {
         res = res.data[name];
@@ -214,6 +214,10 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions) => {
     if (typeof lib[i] == 'function') {
       lib[i] = lib[i].bind(lib);
     }
+  }
+
+  if(options.initSubscriptions) {
+    lib.initSubscriptions(options);
   }
 
   return lib;
