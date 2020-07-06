@@ -182,7 +182,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
       var result = this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => e);
 
-      if (opts.timeout) {
+      if (opts && opts.timeout) {
         const timer = new Promise((resolve) => {
           setTimeout(resolve, opts.timeout, {
             errors: [{ message: 'Timeout during request to: ' + (uri) }],
