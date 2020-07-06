@@ -76,7 +76,7 @@ _Graphql-Mutation_: (Same as `get`, just as `mutation`)
 
 
 ### subscribe(_function_ callback, _string_ name [, _object_ parameters [, _array_ includes] [, _string_ fields] [, _object_ options]])
-_Graphql-Mutation_: (Same as `get`, just as `suscription`)
+_Graphql-Mutation_: (Same as `get`, just as `subscription`)
 - `options?: Object` : optional, object to modify default ApolloClient behavior
   * `timeout?: number` : how long the client should wait in ms for a keep-alive message from the server (default 30000 ms), this parameter is ignored if the server does not send keep-alive messages. This will also be used to calculate the max connection time per connect/reconnect
   * `lazy?: boolean` : use to set lazy mode - connects only when first subscription created, and delay the socket initialization

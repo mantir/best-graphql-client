@@ -6,7 +6,6 @@ const { WebSocketLink } = require('apollo-link-ws');
 const { getMainDefinition } = require('apollo-utilities');
 const { InMemoryCache } = require('apollo-cache-inmemory');
 const { SubscriptionClient } = require("subscriptions-transport-ws");
-const ApolloLinkTimeout = require('apollo-link-timeout').default;
 const HttpLink = createUploadLink;
 const packageName = 'best-graphql-client';
 
@@ -20,9 +19,8 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
   }
   var initLinkParams = { uri };
   if (polyfill) initLinkParams.fetch = polyfill.fetch;
-  const timeoutLink = new ApolloLinkTimeout(10000);
 
-  var client = new ApolloClient({ link: timeoutLink.concat(createUploadLink(initLinkParams)), cache: new InMemoryCache() });
+  var client = new ApolloClient({ link: createUploadLink(initLinkParams), cache: new InMemoryCache() });
   var lib = {
     client,
     initSubscriptions(opts) {
@@ -36,7 +34,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         console.log("disconnected " + packageName + " from " + wsUri + ' (' + (new Date()).toLocaleTimeString() + ')');
       });
 
-      const httpLink = timeoutLink.concat(createUploadLink(initLinkParams));
+      const httpLink = createUploadLink(initLinkParams);
       const link = split(
         ({ query }) => {
           const { kind, operation } = getMainDefinition(query);
@@ -102,9 +100,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       return query;
     },
 
-    buildFields(name, inc, fields = false, fragment = 0) {
-      var buildFragments = fragment === 2;
-      var isFragment = fragment === 1;
+    buildFields(name, inc, fields = false, buildFragments = false) {
       if (!definitions.entities[name]) {
         return name;
       }
@@ -140,7 +136,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
             
             if (i == '*|fragment') uniqueAvailable = uniqueAvailable.map((a) => a + '|fragment');
             
-            query += this.buildFields(name, uniqueAvailable, ' ', fragment);
+            query += this.buildFields(name, uniqueAvailable, ' ', buildFragments);
           } else if (typeof i == 'string') {
             i = { [i]: false };
           }
@@ -151,7 +147,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
               var asFragment = keyParts[1] == 'fragment';
               var fragIndex = asFragment ? 2 : 1;
               var fields = keyParts[fragIndex] ? keyParts[fragIndex] + ' ' : '';
-              fields += this.buildFields(available[keyName], i[key], '', buildFragments ? (asFragment ? 1 : 2) : 0);
+              fields += this.buildFields(available[keyName], i[key], '', buildFragments && !asFragment ? true : false);
               if (asFragment && !buildFragments && fields) {
                 fields = '...' + available[keyName];
               }
@@ -184,8 +180,22 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
       const fun = queryType != 'query' ? 'mutate' : 'query';
       this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
-      var res = await this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => e);
+      var result = this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => e);
 
+      if (opts.timeout) {
+        const timer = new Promise((resolve) => {
+          setTimeout(resolve, opts.timeout, {
+            errors: [{ message: 'Timeout during request to: ' + (uri) }],
+          });
+        });
+        result = Promise.race([
+          result,
+          timer
+        ]);
+      }
+
+      var res = await result;
+      
       if (res.data && res.data[name]) {
         res = res.data[name];
       } else {
@@ -196,7 +206,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
             res.errors = res.graphQLErrors;
           } else if (res.networkError) {
             res.errors = res.networkError.result ? res.networkError.result.errors : [res.networkError];
-          } else {
+          } else if(!res || !res.errors) {
             res = {
               ...res, errors: [{
                 message: 'Unknown error during request in ' + packageName + '. Endpoint: ' + uri
