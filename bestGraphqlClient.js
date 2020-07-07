@@ -14,7 +14,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
   if (!definitions) {
     definitions = { query: {}, mutation: {}, subscription: {}, entities: {} };
   }
-  if(!options) {
+  if (!options) {
     options = { initSubscriptions: false };
   }
   var initLinkParams = { uri };
@@ -115,11 +115,11 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       var fragMap = {};
 
       if (inc) {
-        if(!Array.isArray(inc)) {
-          if(typeof inc == 'object') {
+        if (!Array.isArray(inc)) {
+          if (typeof inc == 'object') {
             inc = [inc];
           } else {
-            throw packageName + ": includes must be an array or objects, but got " + inc+ '. Make sure that all includes are either objects or inside of arrays.';
+            throw packageName + ": includes must be an array or objects, but got " + inc + '. Make sure that all includes are either objects or inside of arrays.';
           }
         }
         var available = definitions.entities[name].availableInc;
@@ -133,9 +133,9 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
                 return included.split('|')[0] == a;
               }))
             });
-            
+
             if (i == '*|fragment') uniqueAvailable = uniqueAvailable.map((a) => a + '|fragment');
-            
+
             query += this.buildFields(name, uniqueAvailable, ' ', buildFragments);
           } else if (typeof i == 'string') {
             i = { [i]: false };
@@ -160,7 +160,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
                   fragMap[available[keyName]] = true;
                 } else if (!buildFragments) {
                   query += ' ' + keyName + '{' + fields + '}';
-                } else if(buildFragments) {
+                } else if (buildFragments) {
                   query += fields;
                 }
               }
@@ -196,9 +196,14 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       }
 
       var res = await result;
-      
-      if (res.data && res.data[name]) {
-        res = res.data[name];
+
+      if (res.data) {
+        if (res.data[name]) {
+          res = res.data[name];
+        } else {
+          var keys = typeof (res.data) == 'object' ? Object.keys(res.data) : [];
+          res = keys.length == 1 ? res.data[keys[0]] : res.data;
+        }
       } else {
         if (typeof (res) != 'object') {
           res = { errors: [{ message: res }] };
@@ -207,7 +212,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
             res.errors = res.graphQLErrors;
           } else if (res.networkError) {
             res.errors = res.networkError.result ? res.networkError.result.errors : [res.networkError];
-          } else if(!res || !res.errors) {
+          } else if (!res || !res.errors) {
             res = {
               ...res, errors: [{
                 message: 'Unknown error during request in ' + packageName + '. Endpoint: ' + uri
@@ -227,7 +232,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
     }
   }
 
-  if(options.initSubscriptions) {
+  if (options.initSubscriptions) {
     lib.initSubscriptions(options);
   }
 
