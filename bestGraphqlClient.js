@@ -154,9 +154,10 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
               if (fields) {
                 if (asFragment && buildFragments) {
                   var frag = `fragment ${available[keyName]} on ${definitions.entities[available[keyName]].entity} { ${fields} }`;
-                  if (!fragMap[frag])
+                  if (!fragMap[available[keyName]]) {
                     query += frag;
-                  fragMap[frag] = true;
+                  }
+                  fragMap[available[keyName]] = true;
                 } else if (!buildFragments) {
                   query += ' ' + keyName + '{' + fields + '}';
                 } else if(buildFragments) {
