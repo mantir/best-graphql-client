@@ -9,6 +9,16 @@ const { SubscriptionClient } = require("subscriptions-transport-ws");
 const HttpLink = createUploadLink;
 const packageName = 'best-graphql-client';
 
+const defaultOptions = {
+  watchQuery: {
+    fetchPolicy: 'no-cache',
+    errorPolicy: 'ignore',
+  },
+  query: {
+    fetchPolicy: 'no-cache',
+    errorPolicy: 'all',
+  }
+};
 
 var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false) => {
   if (!definitions) {
@@ -20,7 +30,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
   var initLinkParams = { uri };
   if (polyfill) initLinkParams.fetch = polyfill.fetch;
 
-  var client = new ApolloClient({ link: createUploadLink(initLinkParams), cache: new InMemoryCache() });
+  var client = new ApolloClient({ link: createUploadLink(initLinkParams), cache: new InMemoryCache(), defaultOptions });
   var lib = {
     client,
     initSubscriptions(opts) {
@@ -41,7 +51,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
           return kind === 'OperationDefinition' && operation === 'subscription';
         }, wsLink, httpLink,
       );
-      this.client = new ApolloClient({ link, cache: new InMemoryCache() });
+      this.client = new ApolloClient({ link, cache: new InMemoryCache(), defaultOptions });
       this.subscriptionClient = wsLink.subscriptionClient;
     },
     subscriptions: {},
