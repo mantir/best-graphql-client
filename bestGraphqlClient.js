@@ -92,7 +92,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       if (!def) {
         return name;
       }
-      var varKeys = Object.keys(variables).filter((k) => typeof(k) !== 'undefined');
+      var varKeys = Object.keys(variables).filter((k) => typeof (variables[k]) !== 'undefined');
       var paramsDef = varKeys.map((k) => '$' + k + ':' + def[0][k]).join(', ');
       var params = varKeys.map((k) => k + ':$' + k).join(', ');
 
