@@ -1,7 +1,7 @@
 const fs = require('fs');
 const bgc = require('./nodejs')(process.env.ENDPOINT);
 var name = process.env.NAME || 'definitions';
-var filename = name+'.js';
+var filename = name + '.js';
 var folder = process.env.FOLDER || __dirname + '/../..';
 var fullpath = folder + '/' + filename;
 
@@ -84,11 +84,10 @@ const introspection = `query IntrospectionQuery {
 var subscriptions = {}, mutations = {}, queries = {}, allTypes = {};
 //let rawdata = fs.readFileSync('schema.json'); 
 bgc.get(introspection).then((data) => {
-  let schema = data.data;
-  //console.log(schema);
+  let schema = data;
+  console.log(schema);
 
-
-  let types = schema.__schema.types;
+  let types = schema.types;
   for (var t of types) {
     if (t.kind == 'OBJECT' && !['Query', 'Mutation', 'Subscription'].includes(t.name) && !t.name.startsWith('_')) {
       //console.log('---'+t.name, t);
@@ -130,7 +129,7 @@ bgc.get(introspection).then((data) => {
     fs.writeFileSync(fullpath, 'module.exports = ' + JSON.stringify(definitions));
   }
   //fs.writeFileSync(__dirname + '/test-definitions.json', JSON.stringify(definitions));
-  var message = 'definitions stored to ' + fullpath + ', use require("./'+name+'") to include them into the client.';
+  var message = 'definitions stored to ' + fullpath + ', use require("./' + name + '") to include them into the client.';
   console.log("\x1b[32m", message, "\x1b[0m");
 })
 
