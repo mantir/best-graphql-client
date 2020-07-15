@@ -35,7 +35,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
     client,
     initSubscriptions(opts) {
       var host = opts && opts.host || uri;
-      const wsUri = host.replace(/^http/i, 'ws') + '/graphql';
+      const wsUri = host.replace(/^http/i, 'ws');
       const subscriptionClient = new SubscriptionClient(wsUri, { reconnect: true, ...opts }, polyfill && polyfill.ws);
       const wsLink = new WebSocketLink(subscriptionClient);
       wsLink.subscriptionClient.on("connected", () => {
