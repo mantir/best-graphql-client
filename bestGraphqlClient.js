@@ -158,6 +158,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
               var asFragment = keyParts[1] == 'fragment';
               var fragIndex = asFragment ? 2 : 1;
               var fields = keyParts[fragIndex] ? keyParts[fragIndex] + ' ' : '';
+              if (!available[keyName]) throw packageName + ": " + keyName + " is no available include for " + name;
               fields += this.buildFields(available[keyName], i[key], '', buildFragments && !asFragment ? true : false);
               if (asFragment && !buildFragments && fields) {
                 fields = '...' + available[keyName];
