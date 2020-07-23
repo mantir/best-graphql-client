@@ -78,8 +78,8 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
       this.subscriptions[queryString] = true;
       var subResult = await this.client.subscribe({ query: gql(queryString), variables }).subscribe({
-        next(data) {
-          callback(data);
+        next: (data) => {
+          callback(this.normalizeApiResult(data, name));
         },
         error(error) {
           console.log('Subscription-error', error, uri);
@@ -182,6 +182,40 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       return query;
     },
 
+    normalizeApiResult(res, name = '') {
+      //console.log('normalize', res);
+
+      if (typeof name == 'undefined') name = '';
+      if (res.errors) {
+        return res;
+      } else
+        if (res.data) {
+          if (res.data[name]) {
+            res = res.data[name];
+          } else {
+            var keys = typeof (res.data) == 'object' ? Object.keys(res.data) : [];
+            res = keys.length == 1 ? res.data[keys[0]] : res.data;
+          }
+        } else {
+          if (typeof (res) != 'object') {
+            res = { errors: [{ message: res }] };
+          } else {
+            if (res.graphQLErrors && res.graphQLErrors.length) {
+              res.errors = res.graphQLErrors;
+            } else if (res.networkError) {
+              res.errors = res.networkError.result ? res.networkError.result.errors : [res.networkError];
+            } else if (!res || !res.errors) {
+              res = {
+                ...res, errors: [{
+                  message: 'Unknown error during request in ' + packageName + '. Endpoint: ' + uri
+                }]
+              }
+            }
+          }
+        }
+      return res;
+    },
+
     async submitQuery(queryType, name, variables = {}, inc, fields, opts) {
       if (typeof inc == 'string') {
         opts = fields;
@@ -205,33 +239,9 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
           timer
         ]);
       }
-
       var res = await result;
+      res = this.normalizeApiResult(res, name);
 
-      if (res.data) {
-        if (res.data[name]) {
-          res = res.data[name];
-        } else {
-          var keys = typeof (res.data) == 'object' ? Object.keys(res.data) : [];
-          res = keys.length == 1 ? res.data[keys[0]] : res.data;
-        }
-      } else {
-        if (typeof (res) != 'object') {
-          res = { errors: [{ message: res }] };
-        } else {
-          if (res.graphQLErrors && res.graphQLErrors.length) {
-            res.errors = res.graphQLErrors;
-          } else if (res.networkError) {
-            res.errors = res.networkError.result ? res.networkError.result.errors : [res.networkError];
-          } else if (!res || !res.errors) {
-            res = {
-              ...res, errors: [{
-                message: 'Unknown error during request in ' + packageName + '. Endpoint: ' + uri
-              }]
-            }
-          }
-        }
-      }
       return res;
     },
   }
