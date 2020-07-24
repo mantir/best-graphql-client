@@ -25,12 +25,12 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
     definitions = { query: {}, mutation: {}, subscription: {}, entities: {} };
   }
   if (!options) {
-    options = { initSubscriptions: false };
+    options = { initSubscriptions: false, addTypename: false };
   }
   var initLinkParams = { uri };
   if (polyfill) initLinkParams.fetch = polyfill.fetch;
 
-  var client = new ApolloClient({ link: createUploadLink(initLinkParams), cache: new InMemoryCache(), defaultOptions });
+  var client = new ApolloClient({ link: createUploadLink(initLinkParams), cache: new InMemoryCache({ addTypename: !!options.addTypename }), defaultOptions });
   var lib = {
     client,
     initSubscriptions(opts) {
