@@ -73,6 +73,11 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       if (!this.subscriptionClient) {
         this.initSubscriptions(opts);
       }
+      if (typeof inc == 'string') {
+        opts = fields;
+        fields = inc;
+        inc = false;
+      }
       var queryString = this.buildQuery('subscription', name, variables, inc, fields);
       console.log(queryString);
 
