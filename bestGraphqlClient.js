@@ -250,6 +250,13 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
       return res;
     },
+
+    fetch(url, opts) {
+      if(polyfill && polyfill.fetch) {
+        const fetch = polyfill.fetch;
+      }
+      return fetch(url, opts);
+    }
   }
 
 
