@@ -232,7 +232,9 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
       const fun = queryType != 'query' ? 'mutate' : 'query';
       this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
-      var result = this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => e);
+      var result = this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => {
+        return e;
+      });
 
       if (opts && opts.timeout) {
         const timer = new Promise((resolve) => {
@@ -246,6 +248,9 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         ]);
       }
       var res = await result;
+      if(res && res.errors) {
+        !this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
+      }
       res = this.normalizeApiResult(res, name);
 
       return res;
