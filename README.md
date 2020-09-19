@@ -90,6 +90,19 @@ _Graphql-Mutation_: (Same as `get`, just as `subscription`)
 _Fragment for Graphql-Query_
 
 
+## Includes
+
+To pass parameters to includes, e.g. to get the comments of only one user: 
+```
+{ comments: { $: {user_id: 1} }}
+``` 
+parameters can be passed with `$` as key. 
+
+If an include should have another name in the result it can be passed as `$name`, e.g. 
+```
+{ comments: { $name: "userComments", $: {user_id: 1} }}
+```
+
 
 ## Example-Usage
 
@@ -120,6 +133,10 @@ var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, ['*'])
 
 /* posts: includes the fields of all connected objects and for the comments it includes also all the fields of the user */
 var posts = await bgc.get('posts', {where: {title: "Your title"}}, ["*", {comments: ["user"]}])
+
+/* posts: includes the fields of all connected objects and for the comments, which contain "hello", it includes also all the fields of the user */
+var posts = await bgc.get('posts', {where: {title: "Your title"}}, ["*", {comments: {$: {where: {content_contains: "hello"} }, user: true}])
+
 /* The same but as fragments */
 var posts = await bgc.get('posts', {where: {title: "Your title"}}, ["*|fragment", {"comments|fragment": ["user"]}])
 

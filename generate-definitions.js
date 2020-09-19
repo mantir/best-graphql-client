@@ -111,7 +111,7 @@ bgc.get(introspection).then((data) => {
       }
     }
   }
-  for (var type in allTypes) {
+  /* for (var type in allTypes) {
     for (var key of Object.keys(allTypes[type].availableInc)) {
       var inc = allTypes[type].availableInc[key];
       //console.log(key, inc);
@@ -120,7 +120,7 @@ bgc.get(introspection).then((data) => {
         //delete allTypes[type].availableInc[inc];
       }
     }
-  }
+  } */
   const definitions = { entities: allTypes, mutation: mutations, query: queries, subscription: subscriptions };
   if (process.env.TEST) {
     fs.writeFileSync(__dirname + '/' + filename, 'module.exports = ' + JSON.stringify(definitions));
@@ -177,7 +177,13 @@ function parseIncludes(field) {
   var kind = parseType(field.type, 'kind');
   var type = parseType(field.type);
   if (!ar.includes(kind)) return false;
-  if (field.name) return [field.name, type[0].toLowerCase() + type.substr(1)];
+  if (field.name) return [field.name, {
+    type: type[0].toLowerCase() + type.substr(1), args: field.args.reduce((obj, curr) => {
+      var type = parseArgs(curr);
+      obj[curr.name] = type;
+      return obj;
+    }, {})
+  }];
 }
 
 function parseType(type, what = 'name', asString = false) {

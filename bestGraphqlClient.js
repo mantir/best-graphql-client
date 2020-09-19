@@ -41,8 +41,19 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       wsLink.subscriptionClient.on("connected", () => {
         console.log("connected " + packageName + " to " + wsUri + ' (' + (new Date()).toLocaleTimeString() + ')');
       });
+      var disconnectedTimer = 0;
+      var disconnectedCount = 0;
       wsLink.subscriptionClient.on("disconnected", () => {
-        console.log("disconnected " + packageName + " from " + wsUri + ' (' + (new Date()).toLocaleTimeString() + ')');
+        /* if(disconnectedTimer) {
+          disconnectedCount++;
+        } else {
+          disconnectedCount = 1;
+          disconnectedTimer = setTimeout(() => {
+            disconnectedTimer = false;
+            console.log("disconnected " + packageName + " from " + wsUri + ' x ' + disconnectedCount + ' (' + (new Date()).toLocaleTimeString() + ')');
+            disconnectedCount = 0;
+          }, 15000);
+        } */
       });
 
       const httpLink = createUploadLink(initLinkParams);
@@ -102,21 +113,24 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       var paramsDef = varKeys.map((k) => '$' + k + ':' + def[0][k]).join(', ');
       var params = varKeys.map((k) => k + ':$' + k).join(', ');
 
-      fields = this.buildFields(def[1], inc, fields);
+      var subParamsDef = {};
+      fields = this.buildFields(def[1], inc, fields, false, subParamsDef);
+      var fragments = inc ? this.buildFields(def[1], inc, '', true) : '';
+      
+      paramsDef += Object.keys(subParamsDef).map((varName) => {
+        return ' $'+varName + ':' + subParamsDef[varName];
+      }).join(', ');
 
       if (paramsDef) {
         params = '(' + params + ')';
         paramsDef = '(' + paramsDef + ')';
       }
 
-      var query = `${queryType} do${paramsDef} { ${name}${params} { ${fields} } }`;
-      if (inc) {
-        query += ' ' + this.buildFields(def[1], inc, '', 2);
-      }
+      var query = `${queryType} do${paramsDef} { ${name}${params} { ${fields} } } ${fragments}`;
       return query;
     },
 
-    buildFields(name, inc, fields = false, buildFragments = false) {
+    buildFields(name, inc, fields = false, buildFragments = false, subParamsDef = {}) {
       if (!definitions.entities[name]) {
         return name;
       }
@@ -135,7 +149,8 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
           if (typeof inc == 'object') {
             inc = [inc];
           } else {
-            throw packageName + ": includes must be an array or objects, but got " + inc + '. Make sure that all includes are either objects or inside of arrays.';
+            //throw packageName + ": includes must be an array or objects, but got " + inc + '. Make sure that all includes are either objects or inside of arrays.';
+            return '';
           }
         }
         var available = definitions.entities[name].availableInc;
@@ -152,7 +167,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
             if (i == '*|fragment') uniqueAvailable = uniqueAvailable.map((a) => a + '|fragment');
 
-            query += this.buildFields(name, uniqueAvailable, ' ', buildFragments);
+            query += this.buildFields(name, uniqueAvailable, ' ', buildFragments, subParamsDef);
           } else if (typeof i == 'string') {
             i = { [i]: false };
           }
@@ -163,21 +178,40 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
               var asFragment = keyParts[1] == 'fragment';
               var fragIndex = asFragment ? 2 : 1;
               var fields = keyParts[fragIndex] ? keyParts[fragIndex] + ' ' : '';
+              var params = '';
               if (!available[keyName]) throw packageName + ": " + keyName + " is no available include for " + name;
-              fields += this.buildFields(available[keyName], i[key], '', buildFragments && !asFragment ? true : false);
+
+              var subType = available[keyName].type;
+              var subArgs = available[keyName].args;
+              /* Variablen für Parameter von Includes */
+              if (i[key]['$']) {
+                for (var subVar in i[key]['$']) {
+                  var varName = subVar + Object.keys(subParamsDef).length;
+                  subParamsDef[varName] = subArgs[subVar];
+                  params += subVar + ': $' + varName;
+                }
+                if(params) params = '(' + params + ')';
+                delete i[key]['$'];
+              }
+              /* Anderer Name für ein Include */
+              if (i[key]['$name']) {
+                keyName = i[key]['$name'] + ': ' + keyName;
+                delete i[key]['$name'];
+              }
+              fields = this.buildFields(subType, i[key], fields, buildFragments && !asFragment ? true : false, subParamsDef);
               if (asFragment && !buildFragments && fields) {
-                fields = '...' + available[keyName];
+                fields = '...' + subType;
               }
               if (fields) {
                 if (asFragment && buildFragments) {
-                  var frag = `fragment ${available[keyName]} on ${definitions.entities[available[keyName]].entity} { ${fields} }`;
-                  if (!fragMap[available[keyName]]) {
+                  var frag = `fragment ${subType} on ${definitions.entities[subType].entity} { ${fields} }`;
+                  if (!fragMap[subType]) {
                     query += frag;
                   }
-                  fragMap[available[keyName]] = true;
+                  fragMap[subType] = true;
                 } else if (!buildFragments) {
-                  query += ' ' + keyName + '{' + fields + '}';
-                } else if (buildFragments) {
+                  query += ' ' + keyName + params + '{' + fields + '}';
+                } else if (buildFragments && fields.match(/fragment.*? on /)) {
                   query += fields;
                 }
               }
@@ -239,7 +273,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       if (opts && opts.timeout) {
         const timer = new Promise((resolve) => {
           setTimeout(resolve, opts.timeout, {
-            errors: [{ message: 'Timeout during request to: ' + (uri) }],
+            errors: [{ message: 'Timeout during request to: ' + (uri) + ' after ' + opts.timeout + ' seconds.' }],
           });
         });
         result = Promise.race([
