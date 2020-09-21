@@ -257,7 +257,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       return query;
     },
 
-    normalizeApiResult(res, name = '') {
+    normalizeApiResult(res, name = '', opts) {
       //console.log('normalize', res);
 
       if (typeof name == 'undefined') name = '';
@@ -265,6 +265,9 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         return res;
       } else
         if (res.data) {
+          if(opts && opts.multi) {
+            res = res.data;
+          } else
           if (res.data[name]) {
             res = res.data[name];
           } else {
@@ -320,9 +323,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       if (res && res.errors) {
         !this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
       }
-      if(!opts || !opts.multi) {
-        res = this.normalizeApiResult(res, name);
-      } else res = res.data;
+      res = this.normalizeApiResult(res, name, opts);
 
       return res;
     },
