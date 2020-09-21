@@ -76,8 +76,18 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       return this.submitQuery('query', name, variables, inc, fields, opts);
     },
 
+    async getMulti(obj) {
+      var query = this.buildMultiQuery('query', obj);
+      return this.submitQuery('query', query.query, query.variables, false, false, {multi: true});
+    },
+
     async mutate(name, variables = {}, inc, fields, opts) {
       return this.submitQuery('mutation', name, variables, inc, fields, opts);
+    },
+
+    async mutateMulti(obj) {
+      var query = this.buildMultiQuery('mutation', obj);
+      return this.submitQuery('mutation', query.query, query.variables, false, false, { multi: true });
     },
 
     async subscribe(callback, name, variables = {}, inc, fields, opts) {
@@ -104,30 +114,55 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       return subResult;
     },
 
-    buildQuery(queryType, name, variables = {}, inc, fields = '') {
+    buildQuery(queryType, name, variables = {}, inc, fields = '', varIndex = '') {
       var def = definitions[queryType][name];
       if (!def) {
         return name;
       }
       var varKeys = Object.keys(variables).filter((k) => typeof (variables[k]) !== 'undefined');
-      var paramsDef = varKeys.map((k) => '$' + k + ':' + def[0][k]).join(', ');
-      var params = varKeys.map((k) => k + ':$' + k).join(', ');
+      var paramsDef = varKeys.map((k) => '$' + k + varIndex + ':' + def[0][k]).join(', ');
+      var params = varKeys.map((k) => k + ':$' + k + varIndex).join(', ');
 
       var subParamsDef = {};
       fields = this.buildFields(def[1], inc, fields, false, subParamsDef);
       var fragments = inc ? this.buildFields(def[1], inc, '', true) : '';
-      
+
       paramsDef += Object.keys(subParamsDef).map((varName) => {
-        return ' $'+varName + ':' + subParamsDef[varName];
+        return ' $' + varName + ':' + subParamsDef[varName];
       }).join(', ');
 
+      if (varIndex !== '') {
+        if (params) { params = '(' + params + ')'; }
+        return { query: `${name}${params} { ${fields} }`, paramsDef };
+      }
       if (paramsDef) {
         params = '(' + params + ')';
         paramsDef = '(' + paramsDef + ')';
       }
-
       var query = `${queryType} do${paramsDef} { ${name}${params} { ${fields} } } ${fragments}`;
       return query;
+    },
+
+    
+    buildMultiQuery(queryType, obj) {
+      var query = '', paramsDef = '';
+      var variables = {};
+      Object.keys(obj).forEach((key, i) => {
+        var d = obj[key];
+        var q = this.buildQuery(queryType, d[0], d[1], d[2], d[3], i);
+        if (d[1]) {
+          Object.keys(d[1]).forEach((key) => {
+            variables[key + i] = d[1][key];
+          })
+        }
+        paramsDef += ' ' + q.paramsDef;
+        query += ' ' + key + ': ' + q.query;
+      })
+      if (paramsDef) {
+        paramsDef = '(' + paramsDef + ')';
+      }
+      query = `${queryType} do ${paramsDef} { ${query} }`;
+      return {query, variables};
     },
 
     buildFields(name, inc, fields = false, buildFragments = false, subParamsDef = {}) {
@@ -190,7 +225,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
                   subParamsDef[varName] = subArgs[subVar];
                   params += subVar + ': $' + varName;
                 }
-                if(params) params = '(' + params + ')';
+                if (params) params = '(' + params + ')';
                 delete i[key]['$'];
               }
               /* Anderer Name für ein Include */
@@ -282,16 +317,18 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         ]);
       }
       var res = await result;
-      if(res && res.errors) {
+      if (res && res.errors) {
         !this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
       }
-      res = this.normalizeApiResult(res, name);
+      if(!opts || !opts.multi) {
+        res = this.normalizeApiResult(res, name);
+      } else res = res.data;
 
       return res;
     },
 
     fetch(url, opts) {
-      if(polyfill && polyfill.fetch) {
+      if (polyfill && polyfill.fetch) {
         const fetch = polyfill.fetch;
       }
       return fetch(url, opts);
