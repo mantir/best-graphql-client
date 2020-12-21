@@ -25,8 +25,10 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
     definitions = { query: {}, mutation: {}, subscription: {}, entities: {} };
   }
   if (!options) {
-    options = { initSubscriptions: false, addTypename: false };
+    options = {};
   }
+  options = { initSubscriptions: false, addTypename: false, ...options };
+
   var initLinkParams = { uri };
   if (polyfill) initLinkParams.fetch = polyfill.fetch;
 
@@ -78,7 +80,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
     async getMulti(obj) {
       var query = this.buildMultiQuery('query', obj);
-      return this.submitQuery('query', query.query, query.variables, false, false, {multi: true});
+      return this.submitQuery('query', query.query, query.variables, false, false, { multi: true });
     },
 
     async mutate(name, variables = {}, inc, fields, opts) {
@@ -102,16 +104,17 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       var queryString = this.buildQuery('subscription', name, variables, inc, fields);
       console.log(queryString);
 
-      this.subscriptions[queryString] = true;
+      //this.subscriptions[queryString] = true;
       var subResult = await this.client.subscribe({ query: gql(queryString), variables }).subscribe({
         next: (data) => {
           callback(this.normalizeApiResult(data, name));
         },
         error(error) {
           console.log('Subscription-error', error, uri);
-          callback({error});
+          callback({ error });
         }
       });
+      //subResult.queryString = queryString;
       return subResult;
     },
 
@@ -144,7 +147,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       return query;
     },
 
-    
+
     buildMultiQuery(queryType, obj) {
       var query = '', paramsDef = '';
       var variables = {};
@@ -163,7 +166,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         paramsDef = '(' + paramsDef + ')';
       }
       query = `${queryType} do ${paramsDef} { ${query} }`;
-      return {query, variables};
+      return { query, variables };
     },
 
     buildFields(name, inc, fields = false, buildFragments = false, subParamsDef = {}) {
@@ -266,15 +269,15 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         return res;
       } else
         if (res.data) {
-          if(opts && opts.multi) {
+          if (opts && opts.multi) {
             res = res.data;
           } else
-          if (res.data[name]) {
-            res = res.data[name];
-          } else {
-            var keys = typeof (res.data) == 'object' ? Object.keys(res.data) : [];
-            res = keys.length == 1 ? res.data[keys[0]] : res.data;
-          }
+            if (res.data[name]) {
+              res = res.data[name];
+            } else {
+              var keys = typeof (res.data) == 'object' ? Object.keys(res.data) : [];
+              res = keys.length == 1 ? res.data[keys[0]] : res.data;
+            }
         } else {
           if (typeof (res) != 'object') {
             res = { errors: [{ message: res }] };
@@ -305,6 +308,10 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
       const fun = queryType != 'query' ? 'mutate' : 'query';
       this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", JSON.stringify(variables));
+      if(this.headers) {
+        if(!opts) opts = {};
+        opts.headers = {...this.headers, ...opts.headers};
+      }
       var result = this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => {
         return e;
       });
@@ -334,6 +341,10 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         const fetch = polyfill.fetch;
       }
       return fetch(url, opts);
+    },
+
+    setHeaders(headers) {
+      this.headers = headers;
     }
   }
 
@@ -342,6 +353,11 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
     if (typeof lib[i] == 'function') {
       lib[i] = lib[i].bind(lib);
     }
+  }
+
+  if (options.headers) {
+    lib.headers = options.headers;
+    delete options.headers;
   }
 
   if (options.initSubscriptions) {
