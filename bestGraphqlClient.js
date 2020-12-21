@@ -129,6 +129,10 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
       var subParamsDef = {};
       fields = this.buildFields(def[1], inc, fields, false, subParamsDef);
+      var parenthesizedFields = '{' + fields + '}';
+      if(fields === def[1]) {
+        parenthesizedFields = '';
+      }
       var fragments = inc ? this.buildFields(def[1], inc, '', true) : '';
 
       paramsDef += Object.keys(subParamsDef).map((varName) => {
@@ -137,13 +141,13 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
       if (varIndex !== '') {
         if (params) { params = '(' + params + ')'; }
-        return { query: `${name}${params} { ${fields} }`, paramsDef };
+        return { query: `${name}${params} ${parenthesizedFields}`, paramsDef };
       }
       if (paramsDef) {
         params = '(' + params + ')';
         paramsDef = '(' + paramsDef + ')';
       }
-      var query = `${queryType} do${paramsDef} { ${name}${params} { ${fields} } } ${fragments}`;
+      var query = `${queryType} do${paramsDef} { ${name}${params} ${parenthesizedFields} } ${fragments}`;
       return query;
     },
 
