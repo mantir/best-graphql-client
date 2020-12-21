@@ -242,14 +242,18 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
                 fields = '...' + subType;
               }
               if (fields) {
+                var parenthesizedFields = '{' + fields + '}';
                 if (asFragment && buildFragments) {
-                  var frag = `fragment ${subType} on ${definitions.entities[subType].entity} { ${fields} }`;
+                  var frag = `fragment ${subType} on ${definitions.entities[subType].entity} ${parenthesizedFields}`;
                   if (!fragMap[subType]) {
                     query += frag;
                   }
                   fragMap[subType] = true;
                 } else if (!buildFragments) {
-                  query += ' ' + keyName + params + '{' + fields + '}';
+                  if (!definitions.entities[subType]) {
+                    parenthesizedFields = '';
+                  }
+                  query += ' ' + keyName + params + parenthesizedFields;
                 } else if (buildFragments && fields.match(/fragment.*? on /)) {
                   query += fields;
                 }
