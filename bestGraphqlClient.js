@@ -336,16 +336,17 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         ]);
       }
       var res = await result;
+      res = this.normalizeApiResult(res, name, opts);
+
       if (res && res.errors) {
-        !this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
         if(this.checkErrors && !opts.isRetry) {
           const shouldRetry = await this.checkErrors(res);
           if(shouldRetry) {
             return this.submitQuery(queryType, name, variables, inc, fields, {...opts, isRetry: true});
           } 
         }
+        !this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
       }
-      res = this.normalizeApiResult(res, name, opts);
 
       return res;
     },
