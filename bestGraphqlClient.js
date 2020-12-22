@@ -316,15 +316,15 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
       const fun = queryType != 'query' ? 'mutate' : 'query';
       this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", JSON.stringify(variables));
+      if(!opts) opts = {};
       if(this.headers) {
-        if(!opts) opts = {};
         opts.headers = {...this.headers, ...opts.headers};
       }
       var result = this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => {
         return e;
       });
 
-      if (opts && opts.timeout) {
+      if (opts.timeout) {
         const timer = new Promise((resolve) => {
           setTimeout(resolve, opts.timeout, {
             errors: [{ message: 'Timeout during request to: ' + (uri) + ' after ' + opts.timeout + ' seconds.' }],
@@ -338,6 +338,12 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       var res = await result;
       if (res && res.errors) {
         !this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
+        if(this.checkErrors && !opts.isRetry) {
+          const shouldRetry = await this.checkErrors(res);
+          if(shouldRetry) {
+            return this.submitQuery(queryType, name, variables, inc, fields, {...opts, isRetry: true});
+          } 
+        }
       }
       res = this.normalizeApiResult(res, name, opts);
 
@@ -366,6 +372,11 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
   if (options.headers) {
     lib.headers = options.headers;
     delete options.headers;
+  }
+
+  if (options.checkErrors) {
+    lib.checkErrors = options.checkErrors;
+    delete options.checkErrors;
   }
 
   if (options.initSubscriptions) {
