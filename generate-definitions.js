@@ -1,5 +1,9 @@
 const fs = require('fs');
-const bgc = require('./nodejs')(process.env.ENDPOINT);
+var headers = false;
+if (process.env.HEADERS) {
+  headers = JSON.parse(process.env.HEADERS);
+}
+const bgc = require('./nodejs')(process.env.ENDPOINT, null, { headers });
 var name = process.env.NAME || 'definitions';
 var filename = name + '.js';
 var folder = process.env.FOLDER || __dirname + '/../..';
