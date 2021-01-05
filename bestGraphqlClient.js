@@ -158,6 +158,9 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       Object.keys(obj).forEach((key, i) => {
         var d = obj[key];
         var q = this.buildQuery(queryType, d[0], d[1], d[2], d[3], i);
+        if(!q) {
+          console.log(packageName + ': MultiQuery ' + key + ' empty:', q, d);
+        }
         if (d[1]) {
           Object.keys(d[1]).forEach((key) => {
             variables[key + i] = d[1][key];
