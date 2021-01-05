@@ -163,6 +163,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
             variables[key + i] = d[1][key];
           })
         }
+        if(!isNaN(key)) key = 'a' + key;
         paramsDef += ' ' + q.paramsDef;
         query += ' ' + key + ': ' + q.query;
       })
