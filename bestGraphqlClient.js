@@ -319,7 +319,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       var query = this.buildQuery(queryType, name, variables, inc, fields);
 
       const fun = queryType != 'query' ? 'mutate' : 'query';
-      this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", JSON.stringify(variables));
+      this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", JSON.stringify(variables), this.debugHeaders ? this.headers : '');
       if(!opts) opts = {};
       if(this.headers) {
         opts.headers = {...this.headers, ...opts.headers};
