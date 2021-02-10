@@ -78,18 +78,31 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       return this.submitQuery('query', name, variables, inc, fields, opts);
     },
 
-    async getMulti(obj) {
-      var query = this.buildMultiQuery('query', obj);
-      return this.submitQuery('query', query.query, query.variables, false, false, { multi: true });
+    async getMulti(obj, opts) {
+      return this.requestMulti('query', obj, opts);
     },
 
     async mutate(name, variables = {}, inc, fields, opts) {
       return this.submitQuery('mutation', name, variables, inc, fields, opts);
     },
 
-    async mutateMulti(obj) {
-      var query = this.buildMultiQuery('mutation', obj);
-      return this.submitQuery('mutation', query.query, query.variables, false, false, { multi: true });
+    async requestMulti(queryType, obj, { chunkSize }) {
+      if (isNaN(chunkSize) || chunkSize < 1) chunkSize = 100;
+      var keys = Object.keys(obj);
+      var allRes = {};
+      for (var i = 0; i < keys.length; i += chunkSize) {
+        var cObj = keys.slice(i, chunkSize).reduce((newObj, o) => ({ ...newObj, [o]: obj[o] }), {});
+        var query = this.buildMultiQuery(queryType, cObj);
+        var res = await this.submitQuery(queryType, query.query, query.variables, false, false, { multi: true });
+        if (!res) res = { errors: ["Empty"] };
+        if (res.errors) res = { ['errors_chunk_' + i]: res.errors, errors: res.errors }
+        allRes = { ...allRes, ...res };
+      }
+      return allRes;
+    },
+
+    async mutateMulti(obj, opts) {
+      return this.requestMulti('mutation', obj, opts);
     },
 
     async subscribe(callback, name, variables = {}, inc, fields, opts) {
@@ -130,7 +143,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       var subParamsDef = {};
       fields = this.buildFields(def[1], inc, fields, false, subParamsDef);
       var parenthesizedFields = '{' + fields + '}';
-      if(fields === def[1]) {
+      if (fields === def[1]) {
         parenthesizedFields = '';
       }
       var fragments = inc ? this.buildFields(def[1], inc, '', true) : '';
@@ -158,7 +171,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       Object.keys(obj).forEach((key, i) => {
         var d = obj[key];
         var q = this.buildQuery(queryType, d[0], d[1], d[2], d[3], i);
-        if(!q) {
+        if (!q) {
           console.log(packageName + ': MultiQuery ' + key + ' empty:', q, d);
         }
         if (d[1]) {
@@ -166,7 +179,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
             variables[key + i] = d[1][key];
           })
         }
-        if(!isNaN(key)) key = 'a' + key;
+        if (!isNaN(key)) key = 'a' + key;
         paramsDef += ' ' + q.paramsDef;
         query += ' ' + key + ': ' + q.query;
       })
@@ -319,9 +332,9 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       var query = this.buildQuery(queryType, name, variables, inc, fields);
 
       const fun = queryType != 'query' ? 'mutate' : 'query';
-      if(!opts) opts = {};
-      if(this.headers) {
-        opts.headers = {...this.headers, ...opts.headers};
+      if (!opts) opts = {};
+      if (this.headers) {
+        opts.headers = { ...this.headers, ...opts.headers };
       }
       this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", JSON.stringify(variables), this.debugHeaders ? opts.headers : '');
       var result = this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => {
@@ -343,11 +356,11 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       res = this.normalizeApiResult(res, name, opts);
 
       if (res && res.errors) {
-        if(this.checkErrors && !opts.isRetry) {
+        if (this.checkErrors && !opts.isRetry) {
           const shouldRetry = await this.checkErrors(res);
-          if(shouldRetry) {
-            return this.submitQuery(queryType, name, variables, inc, fields, {...opts, isRetry: true});
-          } 
+          if (shouldRetry) {
+            return this.submitQuery(queryType, name, variables, inc, fields, { ...opts, isRetry: true });
+          }
         }
         !this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
       }
