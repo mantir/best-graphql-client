@@ -91,7 +91,9 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       var keys = Object.keys(obj);
       var allRes = {};
       for (var i = 0; i < keys.length; i += chunkSize) {
-        var cObj = keys.slice(i, chunkSize).reduce((newObj, o) => ({ ...newObj, [o]: obj[o] }), {});
+        var slice = keys.slice(i, chunkSize);
+        if (!slice.length) break;
+        var cObj = slice.reduce((newObj, o) => ({ ...newObj, [o]: obj[o] }), {});
         var query = this.buildMultiQuery(queryType, cObj);
         var res = await this.submitQuery(queryType, query.query, query.variables, false, false, { multi: true });
         if (!res) res = { errors: ["Empty"] };
