@@ -86,7 +86,11 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       return this.submitQuery('mutation', name, variables, inc, fields, opts);
     },
 
-    async requestMulti(queryType, obj, { chunkSize }) {
+    async mutateMulti(obj, opts) {
+      return this.requestMulti('mutation', obj, opts);
+    },
+
+    async requestMulti(queryType, obj, { chunkSize } = {}) {
       if (isNaN(chunkSize) || chunkSize < 1) chunkSize = 100;
       var keys = Object.keys(obj);
       var allRes = {};
@@ -101,10 +105,6 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         allRes = { ...allRes, ...res };
       }
       return allRes;
-    },
-
-    async mutateMulti(obj, opts) {
-      return this.requestMulti('mutation', obj, opts);
     },
 
     async subscribe(callback, name, variables = {}, inc, fields, opts) {
