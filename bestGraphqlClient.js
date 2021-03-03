@@ -223,7 +223,8 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
                 if (typeof (included) == 'object') {
                   return Object.keys(included).find((ikey) => ikey.split('|')[0] == a);
                 }
-                return included.split('|')[0] == a;
+                var val = included.split('|')[0];
+                return val == a || val == '!'+a;
               }))
             });
 
@@ -231,6 +232,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
             query += this.buildFields(name, uniqueAvailable, ' ', buildFragments, subParamsDef);
           } else if (typeof i == 'string') {
+            if(i.startsWith('!')) continue;
             i = { [i]: false };
           }
           if (typeof i == 'object') {

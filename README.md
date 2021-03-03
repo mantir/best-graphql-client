@@ -123,13 +123,16 @@ var tags = await bgc.get('tags', {orderBy: 'name_ASC'});
 /* All tags with only field 'name' and connected object 'tagCategory' */
 var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, ['tagCategory'], 'name');
 /* Same as */
-var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, 'name tagCategory { id name }');
+var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, 'name tagCategory { allFields }');
 
 /* All tags with the field 'name' but without connected objects */
 var tags = await bgc.get('tags', {}, 'name');
 
 /* All tags with all fields and all connected objects with all their fields */
 var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, ['*'])
+
+/* All tags with all fields and all connected objects (except movies) with all their fields */
+var tags = await bgc.get('tags', {orderBy: 'name_ASC'}, ['*', '!movies'])
 
 /* posts: includes the fields of all connected objects and for the comments it includes also all the fields of the user */
 var posts = await bgc.get('posts', {where: {title: "Your title"}}, ["*", {comments: ["user"]}])
