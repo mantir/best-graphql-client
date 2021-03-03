@@ -232,7 +232,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
             query += this.buildFields(name, uniqueAvailable, ' ', buildFragments, subParamsDef);
           } else if (typeof i == 'string') {
-            if(i.startsWith('!')) continue;
+            if(i[0] == '!') continue;
             i = { [i]: false };
           }
           if (typeof i == 'object') {
