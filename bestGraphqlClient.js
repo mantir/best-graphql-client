@@ -35,6 +35,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
   var client = new ApolloClient({ link: createUploadLink(initLinkParams), cache: new InMemoryCache({ addTypename: !!options.addTypename }), defaultOptions });
   var lib = {
     client,
+    requests: {},
     initSubscriptions(opts) {
       var host = opts && opts.host || uri;
       const wsUri = host.replace(/^http/i, 'ws');
@@ -224,7 +225,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
                   return Object.keys(included).find((ikey) => ikey.split('|')[0] == a);
                 }
                 var val = included.split('|')[0];
-                return val == a || val == '!'+a;
+                return val == a || val == '!' + a;
               }))
             });
 
@@ -232,7 +233,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
             query += this.buildFields(name, uniqueAvailable, ' ', buildFragments, subParamsDef);
           } else if (typeof i == 'string') {
-            if(i[0] == '!') continue;
+            if (i[0] == '!') continue;
             i = { [i]: false };
           }
           if (typeof i == 'object') {
@@ -356,7 +357,15 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
           timer
         ]);
       }
+      var requestId = false;
+      if (opts.requestId) {
+        requestId = Math.random() + '';
+        this.requests[opts.requestId] = requestId;
+      }
       var res = await result;
+      if (requestId) {
+        if (this.requests[opts.requestId] != requestId) return { errors: "lapsed", requestId }
+      }
       res = this.normalizeApiResult(res, name, opts);
 
       if (res && res.errors) {
