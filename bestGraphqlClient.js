@@ -91,7 +91,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       return this.requestMulti('mutation', obj, opts);
     },
 
-    async requestMulti(queryType, obj, { chunkSize } = {}) {
+    async requestMulti(queryType, obj, { chunkSize, progressCallback } = {}) {
       if (isNaN(chunkSize) || chunkSize < 1) chunkSize = 100;
       var keys = Object.keys(obj);
       var allRes = {};
@@ -100,6 +100,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         if (!slice.length) break;
         var cObj = slice.reduce((newObj, o) => ({ ...newObj, [o]: obj[o] }), {});
         var query = this.buildMultiQuery(queryType, cObj);
+        if (progressCallback) progressCallback((i + 1) / keys.length);
         var res = await this.submitQuery(queryType, query.query, query.variables, false, false, { multi: true });
         if (!res) res = { errors: ["Empty"] };
         if (res.errors) res = { ['errors_chunk_' + i]: res.errors, errors: res.errors }
