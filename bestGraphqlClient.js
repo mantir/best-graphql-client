@@ -35,6 +35,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
   var client = new ApolloClient({ link: createUploadLink(initLinkParams), cache: new InMemoryCache({ addTypename: !!options.addTypename }), defaultOptions });
   var lib = {
     client,
+    uri,
     requests: {},
     initSubscriptions(opts) {
       var host = opts && opts.host || uri;
