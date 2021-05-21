@@ -377,7 +377,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
             return this.submitQuery(queryType, name, variables, inc, fields, { ...opts, isRetry: true });
           }
         }
-        !this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
+        !this.debug && !query.match(/(login|password)/i) && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
       }
 
       return res;

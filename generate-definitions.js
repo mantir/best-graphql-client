@@ -89,7 +89,7 @@ var subscriptions = {}, mutations = {}, queries = {}, allTypes = {};
 //let rawdata = fs.readFileSync('schema.json'); 
 bgc.get(introspection).then((data) => {
   let schema = data;
-  console.log(schema);
+  console.dir(schema, {depth:null});
 
   let types = schema.types;
   for (var t of types) {
