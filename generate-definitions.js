@@ -92,6 +92,9 @@ bgc.get(introspection).then((data) => {
   console.dir(schema, {depth:null});
 
   let types = schema.types;
+  if(!Array.isArray(types)) {
+    console.log("types is not an array. Response:", schema);
+  }
   for (var t of types) {
     if (t.kind == 'OBJECT' && !['Query', 'Mutation', 'Subscription'].includes(t.name) && !t.name.startsWith('_')) {
       //console.log('---'+t.name, t);

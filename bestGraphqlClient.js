@@ -1,4 +1,5 @@
-const gql = require('graphql-tag');
+var gql = require('graphql-tag');
+if (typeof (gql) != 'function') gql = require('graphql-tag').default;
 const { ApolloClient } = require('apollo-client');
 const { split } = require('apollo-link');
 const { createUploadLink } = require('apollo-upload-client');
