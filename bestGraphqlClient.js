@@ -345,9 +345,15 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         opts.headers = { ...this.headers, ...opts.headers };
       }
       this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", JSON.stringify(variables), this.debugHeaders ? opts.headers : '');
-      var result = this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => {
-        return e;
-      });
+      try {
+        var result = this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => {
+          console.log(e, 'Query:', query);
+          return e;
+        });
+      } catch (e) {
+        console.log(e, 'Query:', query);
+        var result = e;
+      }
 
       if (opts.timeout) {
         const timer = new Promise((resolve) => {
