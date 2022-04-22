@@ -38,6 +38,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
     client,
     uri,
     requests: {},
+    cachedResults: {},
     initSubscriptions(opts) {
       var host = opts && opts.host || uri;
       const wsUri = host.replace(/^http/i, 'ws');
@@ -358,6 +359,14 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       if (this.headers) {
         opts.headers = { ...this.headers, ...opts.headers };
       }
+      var queryHash;
+      if (opts.fromCache) {
+        queryHash = opts.fromCache.name + queryType + JSON.stringify(variables) + JSON.stringify(inc) + fields;
+        var cached = this.cachedResults[queryHash];
+        if (cached && Date.now() - cached.time < ((opts.fromCache.time || 60) * 1000)) {
+          return cached.result;
+        }
+      }
       this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", JSON.stringify(variables), this.debugHeaders ? opts.headers : '');
       try {
         var result = this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => {
@@ -399,6 +408,10 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
           }
         }
         !this.debug && !query.match(/(login|password)/i) && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
+      } else {
+        if (opts.fromCache) {
+          this.cachedResults[queryHash] = { time: Date.now(), result: res };
+        }
       }
 
       return res;
