@@ -236,7 +236,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         }
         var available = definitions.entities[name].availableInc;
         for (var i of inc) {
-          if (i == '*' || i == '*|fragment') {
+          if (i == '*' || i == '*|fragment' || (typeof (i) == 'object' && (i['*'] || i['*|fragment']))) {
             var uniqueAvailable = Object.keys(available).filter((a) => {
               return !(inc.find((included) => {
                 if (typeof (included) == 'object') {
@@ -247,9 +247,13 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
               }))
             });
 
-            if (i == '*|fragment') uniqueAvailable = uniqueAvailable.map((a) => a + '|fragment');
+            if (i == '*|fragment' || i['*|fragment']) uniqueAvailable = uniqueAvailable.map((a) => a + '|fragment');
 
             query += this.buildFields(name, uniqueAvailable, ' ', buildFragments, subParamsDef);
+            if (typeof (i) == 'object') {
+              delete i['*'];
+              delete i['*|fragment'];
+            }
           } else if (typeof i == 'string') {
             if (i[0] == '!') continue;
             i = { [i]: false };
