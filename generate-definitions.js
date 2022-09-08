@@ -5,9 +5,13 @@ if (process.env.HEADERS) {
 }
 const bgc = require('./nodejs')(process.env.ENDPOINT, null, { headers });
 var name = process.env.NAME || 'definitions';
+var typeName = process.env.TYPE_NAME || 'types';
+const genTypes = process.env.TYPES || process.env.TYPE_NAME || false; 
 var filename = name + '.js';
+var typeFilename = typeName + '.ts';
 var folder = process.env.FOLDER || __dirname + '/../..';
 var fullpath = folder + '/' + filename;
+var fullpathType = folder + '/' + typeFilename;
 
 const introspection = `query IntrospectionQuery {
     __schema {
@@ -89,16 +93,29 @@ var subscriptions = {}, mutations = {}, queries = {}, allTypes = {};
 //let rawdata = fs.readFileSync('schema.json'); 
 bgc.get(introspection).then((data) => {
   let schema = data;
-  console.dir(schema, {depth:null});
+  var typeString = '';
+  console.dir(schema, { depth: null });
 
   let types = schema.types;
-  if(!Array.isArray(types)) {
+  if (!Array.isArray(types)) {
     console.log("types is not an array. Response:", schema);
   }
   for (var t of types) {
     if (t.kind == 'OBJECT' && !['Query', 'Mutation', 'Subscription'].includes(t.name) && !t.name.startsWith('_')) {
       //console.log('---'+t.name, t);
       doStuff(t);
+      typeString += 'export interface ' + t.name + '{' + t.fields.map((f) => {
+        var type = parseType(f.type).replace('!', '');
+        if(['ID', 'DateTime'].includes(type)) {
+          type = 'String';
+        }
+        if(['Int', 'Float', 'Long'].includes(type)) {
+          type = 'number';
+        }
+        return f.name + '?:' +  type
+      }).join(',') + '}'
+    } else if(t.kind == 'ENUM') {
+      typeString += 'export enum ' + t.name + '{' + t.enumValues.map((f) => f.name).join(',') + '}'
     }
     if (t.name == 'Mutation') {
       for (var f of t.fields) {
@@ -128,15 +145,24 @@ bgc.get(introspection).then((data) => {
       }
     }
   } */
+  typeString += 'export interface Json {[key: string]: any;}'
+
   const definitions = { entities: allTypes, mutation: mutations, query: queries, subscription: subscriptions };
+  var definitionString = 'module.exports = ' + JSON.stringify(definitions)
   if (process.env.TEST) {
-    fs.writeFileSync(__dirname + '/' + filename, 'module.exports = ' + JSON.stringify(definitions));
+    fullpath = __dirname + '/' + filename;
+    fullpathType = __dirname + '/' + typeFilename;
   }
-  if (!process.env.TEST) {
-    fs.writeFileSync(fullpath, 'module.exports = ' + JSON.stringify(definitions));
+  
+  fs.writeFileSync(fullpath, definitionString);
+  if(genTypes) {
+    fs.writeFileSync(fullpathType, typeString);
   }
   //fs.writeFileSync(__dirname + '/test-definitions.json', JSON.stringify(definitions));
   var message = 'definitions stored to ' + fullpath + ', use require("./' + name + '") to include them into the client.';
+  if (genTypes) {
+    message += ' types stored to ' + fullpathType;
+  }
   console.log("\x1b[32m", message, "\x1b[0m");
 })
 

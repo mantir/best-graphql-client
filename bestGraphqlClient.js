@@ -136,7 +136,6 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         inc = false;
       }
       var queryString = this.buildQuery('subscription', name, variables, inc, fields);
-      console.log(queryString);
 
       //this.subscriptions[queryString] = true;
       var subResult = await this.client.subscribe({ query: gql(queryString), variables }).subscribe({
