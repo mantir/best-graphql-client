@@ -6,7 +6,8 @@ if (process.env.HEADERS) {
 const bgc = require('./nodejs')(process.env.ENDPOINT, null, { headers });
 var name = process.env.NAME || 'definitions';
 var typeName = process.env.TYPE_NAME || 'types';
-const genTypes = process.env.TYPES || process.env.TYPE_NAME || false; 
+const onlyTypes = process.env.ONLY_TYPES;
+const genTypes = onlyTypes || process.env.TYPES || process.env.TYPE_NAME || false; 
 var filename = name + '.js';
 var typeFilename = typeName + '.ts';
 var folder = process.env.FOLDER || __dirname + '/../..';
@@ -154,13 +155,13 @@ bgc.get(introspection).then((data) => {
     fullpathType = __dirname + '/' + typeFilename;
   }
   
-  fs.writeFileSync(fullpath, definitionString);
+  var message = '';
+  if(!onlyTypes) {
+    fs.writeFileSync(fullpath, definitionString);
+    message = 'definitions stored to ' + fullpath + ', use require("./' + name + '") to include them into the client.';
+  }
   if(genTypes) {
     fs.writeFileSync(fullpathType, typeString);
-  }
-  //fs.writeFileSync(__dirname + '/test-definitions.json', JSON.stringify(definitions));
-  var message = 'definitions stored to ' + fullpath + ', use require("./' + name + '") to include them into the client.';
-  if (genTypes) {
     message += ' types stored to ' + fullpathType;
   }
   console.log("\x1b[32m", message, "\x1b[0m");
