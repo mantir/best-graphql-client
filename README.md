@@ -89,6 +89,15 @@ _Graphql-Mutation_: (Same as `get`, just as `subscription`)
 ### fragment(_string_ name, _array_ includes, _string_ query)
 _Fragment for Graphql-Query_
 
+### getMulti(_array_ queries, _object_ options = { _int_ chunkSize = 100, _function_ onError(_object_ result, _int_ errorCount), _function_ progressCallback(_float_ percent between 0 and 1) })
+Executes multiple queries at once. The `queries` array contains arrays of the parameters for the `get` function. E.g.: queries = [['elements', { where: { date: '01.01.2022' } }, ['includes'], 'field1 field2'], ['elements', { where: { date: '02.01.2022' } }, ...], ...]. 
+`chunkSize` indicates how many queries are submitted per request. 
+`onError` is a custom function executed if a request fails. The can return 'REPEAT', then the request will be tried again. The max number of repetitions is 10.
+`progrressCallback` is a custom function which receives the ratio of requests sent and total requests to be sent.
+
+### mutateMulti(_array_ queries, _object_ options = { _int_ chunkSize = 100, _function_ onError(_object_ result, _int_ errorCount), _function_ progressCallback(_float_ percent between 0 and 1) })
+Same as `getMulti`, just for the `mutate` function.
+
 
 ## Includes
 
