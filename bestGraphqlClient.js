@@ -429,6 +429,19 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
     setHeaders(headers) {
       this.headers = headers;
+    },
+
+    removeTypeNames(input) {
+      var res = Object.keys(input).reduce((obj, key) => {
+        if (key == '__typename') return obj;
+        if (input[key] && typeof input[key] == 'object') {
+          obj[key] = this.removeTypeNames(input[key])
+        } else {
+          obj[key] = input[key];
+        }
+        return obj;
+      }, Array.isArray(input) ? [] : {})
+      return res;
     }
   }
 
