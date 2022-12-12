@@ -384,7 +384,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       if (opts.timeout) {
         const timer = new Promise((resolve) => {
           setTimeout(resolve, opts.timeout, {
-            errors: [{ message: 'Timeout during request to: ' + (uri) + ' after ' + opts.timeout + ' seconds.' }],
+            errors: [{ message: 'Timeout during request to: ' + (uri) + ' after ' + opts.timeout + ' milliseconds.' }],
           });
         });
         result = Promise.race([
