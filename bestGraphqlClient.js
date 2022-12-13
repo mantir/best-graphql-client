@@ -1,13 +1,12 @@
 var gql = require('graphql-tag');
 if (typeof (gql) != 'function') gql = require('graphql-tag').default;
-const { ApolloClient } = require('apollo-client');
-const { split } = require('apollo-link');
 const { createUploadLink } = require('apollo-upload-client');
-const { WebSocketLink } = require('apollo-link-ws');
-const { getMainDefinition } = require('apollo-utilities');
-const { InMemoryCache } = require('apollo-cache-inmemory');
-const { SubscriptionClient } = require("subscriptions-transport-ws");
-const HttpLink = createUploadLink;
+
+const { ApolloClient, InMemoryCache, split } = require("@apollo/client/core");
+const { getMainDefinition } = require("@apollo/client/utilities");
+const { GraphQLWsLink } = require("@apollo/client/link/subscriptions");
+const { createClient } = require("graphql-ws");
+
 const packageName = 'best-graphql-client';
 
 const defaultOptions = {
@@ -31,7 +30,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
   options = { initSubscriptions: false, addTypename: false, ...options };
 
   var initLinkParams = { uri, credentials: options.credentials || 'same-origin' };
-  if (polyfill) initLinkParams.fetch = polyfill.fetch;
+  if (polyfill && polyfill.fetch) initLinkParams.fetch = polyfill.fetch;
 
   var client = new ApolloClient({ link: createUploadLink(initLinkParams), cache: new InMemoryCache({ addTypename: !!options.addTypename }), defaultOptions });
   var lib = {
@@ -42,14 +41,15 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
     initSubscriptions(opts) {
       var host = opts && opts.host || uri;
       const wsUri = host.replace(/^http/i, 'ws');
-      const subscriptionClient = new SubscriptionClient(wsUri, { reconnect: true, ...opts }, polyfill && polyfill.ws);
-      const wsLink = new WebSocketLink(subscriptionClient);
-      wsLink.subscriptionClient.on("connected", () => {
+      if (polyfill && polyfill.ws) opts.webSocketImpl = polyfill.ws;
+      const subscriptionClient = createClient({ url: wsUri, reconnect: true, ...opts });
+      const wsLink = new GraphQLWsLink(subscriptionClient);
+      wsLink.client.on("connected", () => {
         console.log("connected " + packageName + " to " + wsUri + ' (' + (new Date()).toLocaleTimeString() + ')');
       });
       var disconnectedTimer = 0;
       var disconnectedCount = 0;
-      wsLink.subscriptionClient.on("disconnected", () => {
+      wsLink.client.on("closed", () => {
         /* if(disconnectedTimer) {
           disconnectedCount++;
         } else {
@@ -70,7 +70,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
         }, wsLink, httpLink,
       );
       this.client = new ApolloClient({ link, cache: new InMemoryCache(), defaultOptions });
-      this.subscriptionClient = wsLink.subscriptionClient;
+      this.subscriptionClient = wsLink.client;
     },
     subscriptions: {},
 
@@ -373,11 +373,11 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       this.debug && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", JSON.stringify(variables), this.debugHeaders ? opts.headers : '');
       try {
         var result = this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => {
-          console.log(e, 'Query:', query);
+          console.log(e, 'Query:', query, uri);
           return e;
         });
       } catch (e) {
-        console.log(e, 'Query:', query);
+        console.log(e, 'Query:', query, uri);
         var result = e;
       }
 
