@@ -31,8 +31,9 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
   var initLinkParams = { uri, credentials: options.credentials || 'same-origin' };
   if (polyfill && polyfill.fetch) initLinkParams.fetch = polyfill.fetch;
+  const cacheOpts = { addTypename: !!options.addTypename }
 
-  var client = new ApolloClient({ link: createUploadLink(initLinkParams), cache: new InMemoryCache({ addTypename: !!options.addTypename }), defaultOptions });
+  var client = new ApolloClient({ link: createUploadLink(initLinkParams), cache: new InMemoryCache(cacheOpts), defaultOptions });
   var lib = {
     client,
     uri,
@@ -69,7 +70,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
           return kind === 'OperationDefinition' && operation === 'subscription';
         }, wsLink, httpLink,
       );
-      this.client = new ApolloClient({ link, cache: new InMemoryCache(), defaultOptions });
+      this.client = new ApolloClient({ link, cache: new InMemoryCache(cacheOpts), defaultOptions });
       this.subscriptionClient = wsLink.client;
     },
     subscriptions: {},
