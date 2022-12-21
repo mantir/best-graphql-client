@@ -375,11 +375,11 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       try {
         var result = this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => {
           console.log(e, 'Query:', query, uri);
-          return e;
+          return { errors: [e] };
         });
       } catch (e) {
         console.log(e, 'Query:', query, uri);
-        var result = e;
+        var result = { errors: [e] };
       }
 
       if (opts.timeout) {
