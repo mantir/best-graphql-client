@@ -375,11 +375,13 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       try {
         var result = this.client[fun]({ [queryType]: gql(query), variables, context: opts }).catch((e) => {
           console.log(e, 'Query:', query, uri);
-          return { errors: [e] };
+          var errors = e && e.errors ? e.errors : [e];
+          return { errors }
         });
       } catch (e) {
         console.log(e, 'Query:', query, uri);
-        var result = { errors: [e] };
+        var errors = e && e.errors ? e.errors : [e];
+        return { errors }
       }
 
       if (opts.timeout) {
@@ -401,6 +403,9 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
       var res = await result;
       if (requestId) {
         if (this.requests[opts.requestId] != requestId) return { errors: "lapsed", requestId }
+      }
+      if (res && res.clientErrors && !res.errors) {
+        res.errors = [res];
       }
       res = this.normalizeApiResult(res, name, opts);
 
