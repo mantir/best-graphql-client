@@ -360,6 +360,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
 
       const fun = queryType != 'query' ? 'mutate' : 'query';
       if (!opts) opts = {};
+      opts = Object.assign({}, opts);
       if (this.headers) {
         opts.headers = { ...this.headers, ...opts.headers };
       }
