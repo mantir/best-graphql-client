@@ -42,7 +42,13 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
     initSubscriptions(opts) {
       var host = opts && opts.host || uri;
       const wsUri = host.replace(/^http/i, 'ws');
-      const subscriptionClient = new SubscriptionClient(wsUri, { reconnect: true, ...opts }, polyfill && polyfill.ws);
+      const defaultOpts = this.headers ? {
+        connectionParams: {
+          ...(opts && opts.connectionParams || {}),
+          headers: { ...this.headers, ...(opts && opts.connectionParams && opts.connectionParams.headers || {}) }
+        }
+      } : {}
+      const subscriptionClient = new SubscriptionClient(wsUri, { reconnect: true, ...defaultOpts, ...opts }, polyfill && polyfill.ws);
       const wsLink = new WebSocketLink(subscriptionClient);
       wsLink.subscriptionClient.on("connected", () => {
         console.log("connected " + packageName + " to " + wsUri + ' (' + (new Date()).toLocaleTimeString() + ')');
