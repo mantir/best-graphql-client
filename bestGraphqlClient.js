@@ -429,7 +429,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
     },
 
     logError(error, query, variables) {
-      console.log('Query:', query, 'Vars:', JSON.stringify(variables), JSON.stringify(error, null, 2))
+      console.log("\n" + query, "\n", JSON.stringify(variables), "\n", JSON.stringify(error, null, 2))
     },
 
     fetch(url, opts) {
