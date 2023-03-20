@@ -417,6 +417,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
             return this.submitQuery(queryType, name, variables, inc, fields, { ...opts, isRetry: true });
           }
         }
+        this.logError(res.errors, query, variables);
         !this.debug && !query.match(/(login|password)/i) && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
       } else {
         if (opts.fromCache) {
@@ -428,7 +429,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
     },
 
     logError(error, query, variables) {
-      console.log(JSON.stringify(error, null, 2), 'Query:', query, 'Vars:', JSON.stringify(variables))
+      console.log('Query:', query, 'Vars:', JSON.stringify(variables), JSON.stringify(error, null, 2))
     },
 
     fetch(url, opts) {
