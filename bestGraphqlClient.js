@@ -418,7 +418,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
           }
         }
         this.logError(res.errors, query, variables);
-        !this.debug && !query.match(/(login|password)/i) && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", variables);
+        !this.debug && !query.match(/(login|password)/i) && console.log("\n--- " + packageName + " - Query ---\n", query, "\n", JSON.stringify(variables));
       } else {
         if (opts.fromCache) {
           this.cachedResults[queryHash] = { time: Date.now(), result: res };
