@@ -149,7 +149,7 @@ var bestGraphqlClient = (polyfill = false) => (uri, definitions, options = false
           callback(this.normalizeApiResult(data, name));
         },
         error(error) {
-          console.log('Subscription-error', error, uri);
+          console.log('Subscription-error', JSON.stringify(error), uri);
           callback({ error });
         }
       });
